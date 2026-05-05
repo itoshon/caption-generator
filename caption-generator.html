@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram キャプション生成ツール</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #faf9f7;
+      color: #2c2c2a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #2c2c2a;
+      margin-bottom: 0.4rem;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: #888780;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e6e0;
+      padding: 1.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888780;
+      margin-bottom: 1.25rem;
+    }
+
+    .api-key-wrap {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #5f5e5a;
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid #e8e6e0;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: #faf9f7;
+      color: #2c2c2a;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: #b4b2a9;
+      background: #fff;
+    }
+
+    textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+    .field { margin-bottom: 1.1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.7rem 1.4rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #2c2c2a;
+      color: #fff;
+      width: 100%;
+      padding: 0.85rem;
+      font-size: 0.95rem;
+      border-radius: 12px;
+    }
+
+    .btn-primary:hover { background: #444441; }
+    .btn-primary:disabled { background: #b4b2a9; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #faf9f7;
+      color: #5f5e5a;
+      border: 1px solid #e8e6e0;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+    }
+
+    .btn-secondary:hover { background: #f1efe8; }
+
+    .btn-copy {
+      background: #f1efe8;
+      color: #5f5e5a;
+      border: 1px solid #e8e6e0;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .btn-copy:hover { background: #e8e6e0; }
+    .btn-copy.copied { background: #eaf3de; color: #3b6d11; border-color: #c0dd97; }
+
+    .result-box {
+      background: #faf9f7;
+      border: 1px solid #e8e6e0;
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      font-size: 0.9rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      color: #2c2c2a;
+      min-height: 80px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+
+    .result-label {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #888780;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .tab {
+      padding: 0.4rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      color: #888780;
+      background: transparent;
+      font-family: inherit;
+    }
+
+    .tab.active {
+      background: #fff;
+      color: #2c2c2a;
+      border-color: #e8e6e0;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .history-item {
+      border: 1px solid #e8e6e0;
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.75rem;
+      background: #faf9f7;
+    }
+
+    .history-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .history-tag {
+      font-size: 0.75rem;
+      font-weight: 500;
+      background: #f1efe8;
+      color: #5f5e5a;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+    }
+
+    .history-date {
+      font-size: 0.75rem;
+      color: #b4b2a9;
+    }
+
+    .history-text {
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: #444441;
+      white-space: pre-wrap;
+    }
+
+    .history-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #888780;
+      font-size: 0.85rem;
+      padding: 1rem 0;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e8e6e0;
+      border-top-color: #888780;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      color: #b4b2a9;
+      font-size: 0.85rem;
+      padding: 2rem 0;
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 0.75rem;
+      color: #b4b2a9;
+      margin-top: 0.3rem;
+    }
+
+    .api-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      margin-left: 0.5rem;
+    }
+
+    .api-status.ok { background: #eaf3de; color: #3b6d11; }
+    .api-status.error { background: #fcebeb; color: #a32d2d; }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .hashtags-area {
+      font-size: 0.82rem;
+      color: #5f5e5a;
+      background: #f1efe8;
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.6rem;
+      line-height: 1.6;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid #e8e6e0;
+      margin: 1.25rem 0;
+    }
+
+    .toggle-key {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #888780;
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-family: inherit;
+      border: 1px solid #e8e6e0;
+      white-space: nowrap;
+    }
+
+    .toggle-key:hover { background: #f1efe8; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>✂️ Instagram キャプション生成</h1>
+    <p>美容室向け・施術写真の投稿キャプションをAIで自動作成</p>
+  </header>
+
+  <!-- API設定 -->
+  <div class="card" id="api-card">
+    <h2>API設定</h2>
+    <div class="field">
+      <label>Anthropic API キー</label>
+      <div class="api-key-wrap">
+        <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off">
+        <button class="toggle-key" onclick="toggleKey()">表示</button>
+      </div>
+      <div style="margin-top:0.5rem; display:flex; align-items:center; gap:0.5rem;">
+        <button class="btn-secondary" onclick="saveKey()">保存</button>
+        <span id="key-status" style="font-size:0.78rem; color:#888780;"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- タブ -->
+  <div class="card" style="padding-bottom: 0;">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('generate')">キャプション生成</button>
+      <button class="tab" onclick="switchTab('history')">履歴</button>
+      <button class="tab" onclick="switchTab('settings')">設定</button>
+    </div>
+
+    <!-- 生成タブ -->
+    <div class="tab-content active" id="tab-generate" style="padding-bottom:1.75rem;">
+
+      <div class="field">
+        <label>施術内容 <span style="color:#b4b2a9; font-weight:400;">（例：カット＋インナーカラー）</span></label>
+        <input type="text" id="treatment" placeholder="カット・カラー・パーマ・縮毛矯正など">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>スタイルの特徴</label>
+          <input type="text" id="style-point" placeholder="透明感・ツヤ感・ナチュラルなど">
+        </div>
+        <div class="field">
+          <label>雰囲気・イメージ</label>
+          <input type="text" id="mood" placeholder="ふんわり・クール・大人っぽいなど">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>追加メモ <span style="color:#b4b2a9; font-weight:400;">（任意）</span></label>
+        <textarea id="memo" placeholder="季節感・お客様の要望・こだわりポイントなど"></textarea>
+      </div>
+
+      <button class="btn btn-primary" id="generate-btn" onclick="generateCaption()">
+        キャプションを生成する
+      </button>
+
+      <div id="loading" style="display:none; margin-top:1rem;">
+        <div class="loading">
+          <div class="spinner"></div>
+          AIがキャプションを考えています...
+        </div>
+      </div>
+
+      <div id="result-area" style="display:none; margin-top:1.5rem;">
+        <hr class="section-divider">
+
+        <div id="result-1" class="result-section" style="margin-bottom:1.25rem;">
+          <div class="result-header">
+            <span class="result-label">パターン 1</span>
+            <div class="result-actions">
+              <button class="btn btn-copy" onclick="copyText('result-text-1', this)">コピー</button>
+              <button class="btn-secondary" onclick="saveToHistory(0)">保存</button>
+            </div>
+          </div>
+          <div class="result-box" id="result-text-1"></div>
+        </div>
+
+        <div id="result-2" class="result-section" style="margin-bottom:1.25rem;">
+          <div class="result-header">
+            <span class="result-label">パターン 2</span>
+            <div class="result-actions">
+              <button class="btn btn-copy" onclick="copyText('result-text-2', this)">コピー</button>
+              <button class="btn-secondary" onclick="saveToHistory(1)">保存</button>
+            </div>
+          </div>
+          <div class="result-box" id="result-text-2"></div>
+        </div>
+
+        <div id="result-3" class="result-section">
+          <div class="result-header">
+            <span class="result-label">パターン 3</span>
+            <div class="result-actions">
+              <button class="btn btn-copy" onclick="copyText('result-text-3', this)">コピー</button>
+              <button class="btn-secondary" onclick="saveToHistory(2)">保存</button>
+            </div>
+          </div>
+          <div class="result-box" id="result-text-3"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 履歴タブ -->
+    <div class="tab-content" id="tab-history" style="padding-bottom:1.75rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <span style="font-size:0.82rem; color:#888780;" id="history-count">0件</span>
+        <button class="btn-secondary" onclick="clearHistory()">履歴を削除</button>
+      </div>
+      <div id="history-list">
+        <div class="empty-state">まだ保存された履歴はありません</div>
+      </div>
+    </div>
+
+    <!-- 設定タブ -->
+    <div class="tab-content" id="tab-settings" style="padding-bottom:1.75rem;">
+      <div class="field">
+        <label>サロン名</label>
+        <input type="text" id="salon-name" placeholder="例：Hair Salon LUNA">
+      </div>
+      <div class="field">
+        <label>固定ハッシュタグ</label>
+        <textarea id="fixed-hashtags" placeholder="#美容室 #ヘアスタイル #hairsalon&#10;（1行または スペース区切りでOK）" style="min-height:80px;"></textarea>
+      </div>
+      <div class="field">
+        <label>トーン・スタイル</label>
+        <select id="tone">
+          <option value="friendly">親しみやすい・カジュアル</option>
+          <option value="elegant">上品・丁寧</option>
+          <option value="pop">ポップ・元気</option>
+          <option value="cool">クール・スタイリッシュ</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>キャプションの長さ</label>
+        <select id="caption-length">
+          <option value="short">短め（100文字前後）</option>
+          <option value="medium" selected>普通（150〜200文字）</option>
+          <option value="long">長め（250文字前後）</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">設定を保存</button>
+      <div id="settings-saved" style="display:none; margin-top:0.75rem; font-size:0.82rem; color:#3b6d11;">✓ 保存しました</div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+let generatedCaptions = [];
+
+function toggleKey() {
+  const input = document.getElementById('api-key');
+  const btn = event.target;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '隠す';
+  } else {
+    input.type = 'password';
+    btn.textContent = '表示';
+  }
+}
+
+function saveKey() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    document.getElementById('key-status').textContent = '⚠ キーの形式が正しくありません';
+    return;
+  }
+  sessionStorage.setItem('anthropic_key', key);
+  document.getElementById('key-status').textContent = '✓ 保存しました（このセッション中のみ）';
+}
+
+function getKey() {
+  return document.getElementById('api-key').value.trim() || sessionStorage.getItem('anthropic_key') || '';
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'history') renderHistory();
+}
+
+function getSettings() {
+  return {
+    salonName: localStorage.getItem('salon_name') || '',
+    hashtags: localStorage.getItem('fixed_hashtags') || '#美容室 #ヘアスタイル #hairsalon',
+    tone: localStorage.getItem('tone') || 'friendly',
+    length: localStorage.getItem('caption_length') || 'medium'
+  };
+}
+
+function saveSettings() {
+  localStorage.setItem('salon_name', document.getElementById('salon-name').value);
+  localStorage.setItem('fixed_hashtags', document.getElementById('fixed-hashtags').value);
+  localStorage.setItem('tone', document.getElementById('tone').value);
+  localStorage.setItem('caption_length', document.getElementById('caption-length').value);
+  document.getElementById('settings-saved').style.display = 'block';
+  setTimeout(() => document.getElementById('settings-saved').style.display = 'none', 2000);
+}
+
+function loadSettings() {
+  document.getElementById('salon-name').value = localStorage.getItem('salon_name') || '';
+  document.getElementById('fixed-hashtags').value = localStorage.getItem('fixed_hashtags') || '#美容室 #ヘアスタイル #hairsalon';
+  const tone = localStorage.getItem('tone');
+  if (tone) document.getElementById('tone').value = tone;
+  const length = localStorage.getItem('caption_length');
+  if (length) document.getElementById('caption-length').value = length;
+}
+
+function buildPrompt(treatment, stylePoint, mood, memo) {
+  const s = getSettings();
+
+  const toneMap = {
+    friendly: '親しみやすく、お客様に語りかけるような温かいトーン',
+    elegant: '上品で丁寧、品のあるトーン',
+    pop: '明るくポップ、絵文字多めで元気なトーン',
+    cool: 'クールでスタイリッシュ、シンプルなトーン'
+  };
+
+  const lengthMap = {
+    short: '100文字前後',
+    medium: '150〜200文字',
+    long: '250文字前後'
+  };
+
+  return `あなたは美容室のInstagram担当です。以下の情報をもとに、Instagramの投稿キャプションを3パターン作成してください。
+
+【サロン情報】
+- サロン名：${s.salonName || '（未設定）'}
+- トーン：${toneMap[s.tone]}
+- キャプションの長さ：${lengthMap[s.length]}
+
+【今回の施術情報】
+- 施術内容：${treatment}
+- スタイルの特徴：${stylePoint || '（なし）'}
+- 雰囲気・イメージ：${mood || '（なし）'}
+- 追加メモ：${memo || '（なし）'}
+
+【固定ハッシュタグ（必ず末尾に含める）】
+${s.hashtags}
+
+【注意事項】
+- 各パターンは「パターン1:」「パターン2:」「パターン3:」で始める
+- 絵文字を適切に使用する
+- ハッシュタグはキャプション末尾にまとめて記載
+- 自然で読みやすい日本語で書く
+- 各パターンは改行で区切る`;
+}
+
+async function generateCaption() {
+  const apiKey = getKey();
+  if (!apiKey) {
+    alert('APIキーを入力してください');
+    return;
+  }
+
+  const treatment = document.getElementById('treatment').value.trim();
+  if (!treatment) {
+    alert('施術内容を入力してください');
+    return;
+  }
+
+  const stylePoint = document.getElementById('style-point').value.trim();
+  const mood = document.getElementById('mood').value.trim();
+  const memo = document.getElementById('memo').value.trim();
+
+  document.getElementById('generate-btn').disabled = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-area').style.display = 'none';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: buildPrompt(treatment, stylePoint, mood, memo) }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'APIエラー');
+    }
+
+    const data = await response.json();
+    const text = data.content[0].text;
+
+    const patterns = parsePatterns(text);
+    generatedCaptions = patterns.map(p => ({ text: p, treatment, date: new Date().toLocaleString('ja-JP') }));
+
+    document.getElementById('result-text-1').textContent = patterns[0] || '';
+    document.getElementById('result-text-2').textContent = patterns[1] || '';
+    document.getElementById('result-text-3').textContent = patterns[2] || '';
+    document.getElementById('result-area').style.display = 'block';
+
+  } catch (e) {
+    alert('エラーが発生しました: ' + e.message);
+  } finally {
+    document.getElementById('generate-btn').disabled = false;
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function parsePatterns(text) {
+  const parts = text.split(/パターン[123１２３]\s*[:：]/);
+  return parts.slice(1).map(p => p.trim()).filter(Boolean);
+}
+
+function copyText(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ コピー済み';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'コピー';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function saveToHistory(index) {
+  if (!generatedCaptions[index]) return;
+  const history = JSON.parse(localStorage.getItem('caption_history') || '[]');
+  history.unshift(generatedCaptions[index]);
+  if (history.length > 50) history.pop();
+  localStorage.setItem('caption_history', JSON.stringify(history));
+  alert('履歴に保存しました');
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('caption_history') || '[]');
+  const list = document.getElementById('history-list');
+  document.getElementById('history-count').textContent = history.length + '件';
+
+  if (history.length === 0) {
+    list.innerHTML = '<div class="empty-state">まだ保存された履歴はありません</div>';
+    return;
+  }
+
+  list.innerHTML = history.map((item, i) => `
+    <div class="history-item">
+      <div class="history-meta">
+        <span class="history-tag">${item.treatment || '施術'}</span>
+        <span class="history-date">${item.date}</span>
+      </div>
+      <div class="history-text">${escapeHtml(item.text)}</div>
+      <div class="history-actions">
+        <button class="btn btn-copy" onclick="copyHistoryItem(${i}, this)">コピー</button>
+        <button class="btn-secondary" onclick="deleteHistory(${i})">削除</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyHistoryItem(index, btn) {
+  const history = JSON.parse(localStorage.getItem('caption_history') || '[]');
+  navigator.clipboard.writeText(history[index].text).then(() => {
+    btn.textContent = '✓ コピー済み';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'コピー';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function deleteHistory(index) {
+  const history = JSON.parse(localStorage.getItem('caption_history') || '[]');
+  history.splice(index, 1);
+  localStorage.setItem('caption_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('すべての履歴を削除しますか？')) return;
+  localStorage.removeItem('caption_history');
+  renderHistory();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+loadSettings();
+</script>
+</body>
+</html>
